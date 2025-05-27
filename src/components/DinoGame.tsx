@@ -231,10 +231,10 @@ export default function DinoGame(): JSX.Element {
       obstacles.forEach(obs => {
         const drawY = canvas.height - GROUND_HEIGHT - obs.height;
         const rockImg = rockImages[obs.imageIndex];
-        if (rockImg.complete) {
+      if (rockImg.complete) {
           ctx.drawImage(rockImg, obs.x, drawY, obs.width, obs.height);
         }
-      });
+        });
     }
 
     function updateObstacles() {
@@ -480,14 +480,14 @@ export default function DinoGame(): JSX.Element {
         checkPowerUpCollision();
 
         // Check for collision
-        if (checkCollision()) {
-          setIsRunning(false);
-          setGameOver(true);
-          setScore(localScore);
-          return;
-        }
+      if (checkCollision()) {
+        setIsRunning(false);
+        setGameOver(true);
+        setScore(localScore);
+        return;
+      }
 
-        localScore++;
+      localScore++;
       }
       
       animationRef.current = requestAnimationFrame(loop);
@@ -593,27 +593,16 @@ export default function DinoGame(): JSX.Element {
 
       {/* Game Container */}
       {!showCover && !showLeaderboard && (
-        <div 
-          id="game-container"
-          className="flex justify-center items-center h-screen w-screen bg-gray-900"
-          style={{
-            margin: 0,
-            padding: 0,
-            height: '100vh',
-            width: '100vw',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}
-        >
-          <div className="relative">
+        <div className="fixed inset-0 bg-gray-900 flex items-center justify-center">
+          <div className="relative" style={{ margin: '0 auto', transform: 'translate(325px, 100px)' }}>
             <canvas 
               ref={canvasRef} 
               className="bg-blue-900 shadow-lg" 
               style={{ 
-                width: '1200px', 
-                height: '600px',
-                boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)'
+                width: '800px', 
+                height: '400px',
+                boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)',
+                display: 'block'
               }}
             />
 
@@ -687,7 +676,7 @@ export default function DinoGame(): JSX.Element {
               style={{ fontSize: '18px' }}
             >
               ✖
-            </button>
+        </button>
           </div>
 
           {/* Table */}
