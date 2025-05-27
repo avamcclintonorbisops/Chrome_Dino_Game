@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import '../styles/animations.css';
 
 const GRAVITY = 0.6;
 const JUMP_FORCE = -12;
@@ -42,10 +43,23 @@ export default function DinoGame(): JSX.Element {
   const [score, setScore] = useState<number>(0);
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [imagesLoaded, setImagesLoaded] = useState<boolean>(false);
-  const [showHitboxes, setShowHitboxes] = useState<boolean>(true); // Debug mode for hitboxes
+  const [showCover, setShowCover] = useState<boolean>(true);
   const dinoImageDataRef = useRef<ImageData | null>(null);
   const rockImagesRef = useRef<HTMLImageElement[]>([]);
   const currentRockIndexRef = useRef<number>(0);
+
+  function startGame() {
+    setShowCover(false);
+    setScore(0);
+    setGameOver(false);
+    setIsRunning(true);
+  }
+
+  function restartGame() {
+    setGameOver(false);
+    setScore(0);
+    setIsRunning(true);
+  }
 
   useEffect(() => {
     if (!isRunning) return;
@@ -56,7 +70,7 @@ export default function DinoGame(): JSX.Element {
     if (!ctx) return;
 
     canvas.width = 800;
-    canvas.height = 200;
+    canvas.height = 400;
 
     // Load images
     const dinoImg = new Image();
@@ -93,16 +107,16 @@ export default function DinoGame(): JSX.Element {
 
     let dino: Dino = {
       x: 50,
-      y: canvas.height - GROUND_HEIGHT - 80,
-      width: 80,
-      height: 80,
+      y: canvas.height - GROUND_HEIGHT - 120,
+      width: 100,
+      height: 100,
       dy: 0,
       isJumping: false,
       collisionBox: {
-        x: 15,  // Offset from left to account for transparent margin
-        y: 10,  // Offset from top to account for transparent margin
-        width: 50,  // Reduced width to match visible area
-        height: 60, // Reduced height to match visible area
+        x: 20,
+        y: 15,
+        width: 60,
+        height: 70,
       }
     };
 
@@ -113,16 +127,13 @@ export default function DinoGame(): JSX.Element {
     function drawGround() {
       if (!ctx || !canvas) return;
       
-      // Create gradient for the sand
       const gradient = ctx.createLinearGradient(0, canvas.height - GROUND_HEIGHT, 0, canvas.height);
-      gradient.addColorStop(0, "#e6c88e");  // Lighter sand at top
-      gradient.addColorStop(1, "#d4b483");  // Darker sand at bottom
+      gradient.addColorStop(0, "#e6c88e");
+      gradient.addColorStop(1, "#d4b483");
       
-      // Draw the base gradient
       ctx.fillStyle = gradient;
       ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, GROUND_HEIGHT);
       
-      // Add subtle sand texture
       ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
       for (let i = 0; i < canvas.width; i += 4) {
         for (let j = canvas.height - GROUND_HEIGHT; j < canvas.height; j += 4) {
@@ -132,24 +143,14 @@ export default function DinoGame(): JSX.Element {
         }
       }
       
-      // Add a subtle highlight at the top of the sand
       ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
       ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, 2);
-    }
-
-    function drawHitbox(ctx: CanvasRenderingContext2D, x: number, y: number, box: { x: number, y: number, width: number, height: number }) {
-      ctx.strokeStyle = 'red';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(x + box.x, y + box.y, box.width, box.height);
     }
 
     function drawDino() {
       if (!ctx) return;
       if (dinoImg.complete) {
         ctx.drawImage(dinoImg, dino.x, dino.y, dino.width, dino.height);
-        if (showHitboxes) {
-          drawHitbox(ctx, dino.x, dino.y, dino.collisionBox);
-        }
       }
     }
 
@@ -163,9 +164,6 @@ export default function DinoGame(): JSX.Element {
         const rockImg = rockImages[obs.imageIndex];
         if (rockImg.complete) {
           ctx.drawImage(rockImg, obs.x, drawY, obs.width, obs.height);
-          if (showHitboxes) {
-            drawHitbox(ctx, obs.x, drawY, obs.collisionBox);
-          }
         }
       });
     }
@@ -188,7 +186,6 @@ export default function DinoGame(): JSX.Element {
           imageIndex: currentRockIndexRef.current
         });
         
-        // Update the rock index for the next obstacle
         currentRockIndexRef.current = (currentRockIndexRef.current + 1) % 3;
         
         lastObstacleTime = now;
@@ -213,9 +210,13 @@ export default function DinoGame(): JSX.Element {
 
     function drawScore() {
       if (!ctx) return;
+      ctx.save();
       ctx.fillStyle = "#fff";
       ctx.font = "20px Arial";
-      ctx.fillText(`Score: ${localScore}`, 10, 30);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(`Score: ${localScore}`, 30, 30);
+      ctx.restore();
     }
 
     function checkCollision(): boolean {
@@ -251,8 +252,7 @@ export default function DinoGame(): JSX.Element {
     function loop() {
       if (!ctx || !canvas) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      // Add ocean blue background
-      ctx.fillStyle = "#1a4b84";  // Deep ocean blue color
+      ctx.fillStyle = "#1a4b84";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       drawGround();
       updateDino();
@@ -260,12 +260,15 @@ export default function DinoGame(): JSX.Element {
       updateObstacles();
       drawObstacles();
       drawScore();
+      
+      // Check for collision
       if (checkCollision()) {
         setIsRunning(false);
         setGameOver(true);
         setScore(localScore);
         return;
       }
+
       localScore++;
       animationRef.current = requestAnimationFrame(loop);
     }
@@ -286,150 +289,124 @@ export default function DinoGame(): JSX.Element {
     };
   }, [isRunning]);
 
-  function startGame() {
-    setScore(0);
-    setGameOver(false);
-    setIsRunning(true);
-  }
-
   return (
-    <div className="relative flex flex-col justify-center items-center min-h-screen">
-      {/* Ocean Background */}
-      <div 
-        className="fixed inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: 'url(/ocean.png)' }}
-      />
+    <div className="relative min-h-screen w-full overflow-hidden">
+      {/* Cover Screen */}
+      {showCover && (
+        <div className="fixed inset-0 w-screen h-screen">
+          {/* Title */}
+          <div className="w-full text-center pt-20 relative z-[9999]">
+            <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-bold text-white inline-block">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500 animate-pulse">
+                Submarine Adventure
+              </span>
+            </h1>
+          </div>
 
-      {!isRunning && !gameOver && (
-        <div className="relative w-full h-screen flex flex-col items-center justify-center overflow-hidden">
-          {/* Animated background elements */}
-          <div className="absolute inset-0">
-            {/* Light rays */}
+          {/* Animated Background */}
+          <div className="fixed inset-0 w-screen h-screen overflow-hidden">
+            <img 
+              src="/ocean.gif" 
+              alt="Ocean Background" 
+              className="w-[300%] h-[300%] object-cover"
+              style={{
+                maxWidth: '300vw',
+                maxHeight: '300vh',
+                objectPosition: 'center',
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%) scale(3)'
+              }}
+            />
+            <div className="fixed inset-0 bg-black/50" />
+          </div>
+
+          {/* Buttons Container */}
+          <div className="fixed bottom-10 left-1/2 z-[9999] transform -translate-x-1/2 flex flex-col items-center gap-4">
+            {/* Start Button */}
+            <button
+              onClick={startGame}
+              className="px-16 py-6 text-3xl font-bold text-white bg-gradient-to-r from-red-600 to-red-700 rounded-lg 
+                       shadow-lg hover:from-red-700 hover:to-red-800 transform hover:scale-105 transition-all duration-300
+                       active:scale-95 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+            >
+              Start Game
+            </button>
+          </div>
+
+          {/* Animated Elements */}
+          <div className="fixed inset-0 pointer-events-none">
+            {/* Light Rays */}
             <div className="absolute inset-0 opacity-20">
               {[...Array(5)].map((_, i) => (
                 <div
                   key={i}
-                  className="absolute h-full w-1 bg-white transform rotate-45"
+                  className="absolute w-1 h-full bg-white transform rotate-45 animate-light-ray"
                   style={{
                     left: `${20 + i * 15}%`,
-                    animation: `lightRay ${3 + i * 0.5}s infinite ease-in-out`,
-                    opacity: 0.3,
+                    animationDelay: `${i * 0.5}s`
                   }}
                 />
               ))}
             </div>
-            
+
             {/* Bubbles */}
-            {[...Array(20)].map((_, i) => (
+            {[...Array(30)].map((_, i) => (
               <div
                 key={i}
-                className="absolute rounded-full bg-white opacity-20"
+                className="absolute w-6 h-6 rounded-full bg-white/20 animate-bubble"
                 style={{
-                  width: `${Math.random() * 10 + 5}px`,
-                  height: `${Math.random() * 10 + 5}px`,
                   left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                  animation: `bubble ${Math.random() * 3 + 2}s infinite ease-in-out`,
-                  animationDelay: `${Math.random() * 2}s`,
+                  bottom: `-${Math.random() * 100}%`,
+                  animationDelay: `${Math.random() * 5}s`
                 }}
               />
-            ))}
-          </div>
-
-          {/* Title */}
-          <h1 className="text-6xl font-bold text-white mb-8 relative z-10">
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-blue-400">
-              Submarine Adventure
-            </span>
-            <div className="absolute -inset-1 bg-blue-400/20 blur-xl -z-10" />
-          </h1>
-
-          {/* Start Button */}
-          <button
-            onClick={startGame}
-            className="relative px-12 py-4 text-xl font-semibold text-white rounded-lg overflow-hidden group"
-          >
-            {/* Button background with gradient */}
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-400 opacity-90 group-hover:opacity-100 transition-opacity" />
-            
-            {/* Glassy overlay */}
-            <div className="absolute inset-0 bg-white/20 backdrop-blur-sm" />
-            
-            {/* Button content */}
-            <span className="relative z-10">Start Game</span>
-            
-            {/* Shine effect */}
-            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-          </button>
-
-          {/* Fish silhouettes */}
-          <div className="absolute bottom-20 left-0 w-full">
-            {[...Array(3)].map((_, i) => (
-              <div
-                key={i}
-                className="absolute text-white opacity-10"
-                style={{
-                  fontSize: '2rem',
-                  left: `${i * 30}%`,
-                  animation: `swim ${5 + i * 2}s infinite linear`,
-                  animationDelay: `${i * 2}s`,
-                }}
-              >
-                🐠
-              </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Game Canvas */}
-      <canvas 
-        ref={canvasRef} 
-        className={`border border-white ${!isRunning && !gameOver ? 'hidden' : ''}`} 
-      />
+      {/* Game Container */}
+      <div 
+        id="game-container" 
+        className="flex justify-center items-center h-screen w-screen bg-gray-900"
+        style={{
+          margin: 0,
+          padding: 0,
+          height: '100vh',
+          width: '100vw',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}
+      >
+        <div className="relative">
+          <canvas 
+            ref={canvasRef} 
+            className="bg-blue-900 shadow-lg" 
+            style={{ 
+              width: '1200px', 
+              height: '600px',
+              boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)'
+            }}
+          />
 
-      {/* Game Controls */}
-      <div className="mt-4 flex gap-4">
-        {!isRunning && gameOver && (
-          <button
-            onClick={startGame}
-            className="px-4 py-2 bg-green-600 text-white rounded"
-          >
-            Restart
-          </button>
-        )}
-        {isRunning && (
-          <button
-            onClick={() => setShowHitboxes(!showHitboxes)}
-            className="px-4 py-2 bg-blue-600 text-white rounded"
-          >
-            {showHitboxes ? "Hide Hitboxes" : "Show Hitboxes"}
-          </button>
-        )}
+          {gameOver && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50">
+              <div className="text-white text-4xl mb-8">Game Over! Final Score: {score}</div>
+              <button
+                onClick={restartGame}
+                className="px-8 py-4 text-2xl font-bold text-white bg-gradient-to-r from-red-600 to-red-700 rounded-lg 
+                         shadow-lg hover:from-red-700 hover:to-red-800 transform hover:scale-105 transition-all duration-300
+                         active:scale-95 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+              >
+                Play Again
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-      {gameOver && (
-        <div className="text-white mt-2">Game Over! Final Score: {score}</div>
-      )}
-
-      {/* Add keyframe animations */}
-      <style>
-        {`
-          @keyframes lightRay {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.5; }
-          }
-          @keyframes bubble {
-            0% { transform: translateY(0); opacity: 0; }
-            50% { opacity: 0.2; }
-            100% { transform: translateY(-100vh); opacity: 0; }
-          }
-          @keyframes swim {
-            0% { transform: translateX(-100%) rotate(0deg); }
-            50% { transform: translateX(50%) rotate(5deg); }
-            100% { transform: translateX(200%) rotate(0deg); }
-          }
-        `}
-      </style>
     </div>
   );
 } 
