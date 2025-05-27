@@ -22,12 +22,13 @@ interface Obstacle {
   height: number;
 }
 
-export default function DinoGame() {
+export default function DinoGame(): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [score, setScore] = useState<number>(0);
   const [gameOver, setGameOver] = useState<boolean>(false);
+  const [imagesLoaded, setImagesLoaded] = useState<boolean>(false);
 
   useEffect(() => {
     if (!isRunning) return;
@@ -40,11 +41,33 @@ export default function DinoGame() {
     canvas.width = 800;
     canvas.height = 200;
 
+    // Load images
+    const dinoImg = new Image();
+    const rockImg = new Image();
+    
+    let imagesToLoad = 2;
+    let loadedImages = 0;
+
+    function handleImageLoad() {
+      loadedImages++;
+      if (loadedImages === imagesToLoad) {
+        setImagesLoaded(true);
+      }
+    }
+
+    dinoImg.onload = handleImageLoad;
+    dinoImg.onerror = () => console.error('Error loading sub.png');
+    dinoImg.src = '/sub.png';
+
+    rockImg.onload = handleImageLoad;
+    rockImg.onerror = () => console.error('Error loading rock1.png');
+    rockImg.src = '/rock1.png';
+
     let dino: Dino = {
       x: 50,
-      y: canvas.height - GROUND_HEIGHT - 40,
-      width: 40,
-      height: 40,
+      y: canvas.height - GROUND_HEIGHT - 80,
+      width: 80,
+      height: 80,
       dy: 0,
       isJumping: false,
     };
@@ -54,30 +77,36 @@ export default function DinoGame() {
     let localScore = 0;
 
     function drawGround() {
+      if (!ctx || !canvas) return;
       ctx.fillStyle = "#444";
       ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, GROUND_HEIGHT);
     }
 
     function drawDino() {
-      ctx.fillStyle = "#0f0";
-      ctx.fillRect(dino.x, dino.y, dino.width, dino.height);
+      if (!ctx) return;
+      if (dinoImg.complete) {
+        ctx.drawImage(dinoImg, dino.x, dino.y, dino.width, dino.height);
+      }
     }
 
     function drawObstacles() {
-      ctx.fillStyle = "#f00";
-      obstacles.forEach(obs => {
-        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-      });
+      if (!ctx) return;
+      if (rockImg.complete) {
+        obstacles.forEach(obs => {
+          ctx.drawImage(rockImg, obs.x, obs.y, obs.width, obs.height);
+        });
+      }
     }
 
     function updateObstacles() {
+      if (!canvas) return;
       const now = Date.now();
       if (now - lastObstacleTime > OBSTACLE_INTERVAL) {
         obstacles.push({
           x: canvas.width,
-          y: canvas.height - GROUND_HEIGHT - 40,
-          width: 20,
-          height: 40,
+          y: canvas.height - GROUND_HEIGHT - 60,
+          width: 60,
+          height: 60,
         });
         lastObstacleTime = now;
       }
@@ -101,6 +130,7 @@ export default function DinoGame() {
     }
 
     function updateDino() {
+      if (!canvas) return;
       if (dino.isJumping) {
         dino.dy += GRAVITY;
         dino.y += dino.dy;
@@ -113,12 +143,14 @@ export default function DinoGame() {
     }
 
     function drawScore() {
+      if (!ctx) return;
       ctx.fillStyle = "#fff";
       ctx.font = "20px Arial";
       ctx.fillText(`Score: ${localScore}`, 10, 30);
     }
 
     function loop() {
+      if (!ctx || !canvas) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawGround();
       updateDino();
