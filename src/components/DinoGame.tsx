@@ -13,6 +13,12 @@ interface Dino {
   height: number;
   dy: number;
   isJumping: boolean;
+  collisionBox: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
 }
 
 interface Obstacle {
@@ -20,6 +26,12 @@ interface Obstacle {
   y: number;
   width: number;
   height: number;
+  collisionBox: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
 }
 
 export default function DinoGame(): JSX.Element {
@@ -70,6 +82,12 @@ export default function DinoGame(): JSX.Element {
       height: 80,
       dy: 0,
       isJumping: false,
+      collisionBox: {
+        x: 60,  // Offset from left edge of sprite
+        y: 20,  // Offset from top edge of sprite
+        width: 60,  // Slightly smaller than sprite width
+        height: 50, // Slightly smaller than sprite height
+      }
     };
 
     let obstacles: Obstacle[] = [];
@@ -90,10 +108,11 @@ export default function DinoGame(): JSX.Element {
     }
 
     function drawObstacles() {
-      if (!ctx) return;
+      if (!ctx || !canvas) return;
       if (rockImg.complete) {
         obstacles.forEach(obs => {
-          ctx.drawImage(rockImg, obs.x, obs.y, obs.width, obs.height);
+          // Draw the obstacle with its bottom aligned to the ground
+          ctx.drawImage(rockImg, obs.x, canvas.height - GROUND_HEIGHT - obs.height, obs.width, obs.height);
         });
       }
     }
@@ -104,9 +123,15 @@ export default function DinoGame(): JSX.Element {
       if (now - lastObstacleTime > OBSTACLE_INTERVAL) {
         obstacles.push({
           x: canvas.width,
-          y: canvas.height - GROUND_HEIGHT - 60,
+          y: canvas.height - GROUND_HEIGHT - 60,  // This y value is used for collision detection
           width: 60,
           height: 60,
+          collisionBox: {
+            x: 10,
+            y: 10,
+            width: 40,
+            height: 40,
+          }
         });
         lastObstacleTime = now;
       }
@@ -117,11 +142,27 @@ export default function DinoGame(): JSX.Element {
 
     function checkCollision(): boolean {
       for (const obs of obstacles) {
+        // Calculate actual collision box positions
+        const dinoBox = {
+          left: dino.x + dino.collisionBox.x,
+          right: dino.x + dino.collisionBox.x + dino.collisionBox.width,
+          top: dino.y + dino.collisionBox.y,
+          bottom: dino.y + dino.collisionBox.y + dino.collisionBox.height
+        };
+
+        const obsBox = {
+          left: obs.x + obs.collisionBox.x,
+          right: obs.x + obs.collisionBox.x + obs.collisionBox.width,
+          top: obs.y + obs.collisionBox.y,
+          bottom: obs.y + obs.collisionBox.y + obs.collisionBox.height
+        };
+
+        // Check for overlap using the tighter collision boxes
         if (
-          dino.x < obs.x + obs.width &&
-          dino.x + dino.width > obs.x &&
-          dino.y < obs.y + obs.height &&
-          dino.y + dino.height > obs.y
+          dinoBox.left < obsBox.right &&
+          dinoBox.right > obsBox.left &&
+          dinoBox.top < obsBox.bottom &&
+          dinoBox.bottom > obsBox.top
         ) {
           return true;
         }
@@ -152,6 +193,9 @@ export default function DinoGame(): JSX.Element {
     function loop() {
       if (!ctx || !canvas) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Add ocean blue background
+      ctx.fillStyle = "#1a4b84";  // Deep ocean blue color
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       drawGround();
       updateDino();
       drawDino();
